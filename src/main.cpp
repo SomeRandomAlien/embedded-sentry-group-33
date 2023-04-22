@@ -1,7 +1,3 @@
-// Check out the `snippets.txt` file
-// for the code snippets to follow along 
-// during the live coding session
-
 // PROJECT: Use a relatively complex motion for a gyroscope in order to
 // unlock some code in the project. Look out for email called Embedded Sentry
 
@@ -15,6 +11,7 @@
 // Manual for dev board: https://www.st.com/resource/en/user_manual/um1670-discovery-kit-with-stm32f429zi-mcu-stmicroelectronics.pdf
 // gyroscope datasheet: https://www.mouser.com/datasheet/2/389/dm00168691-1798633.pdf
 
+// Starter Code Provided by the March 27 Recitation.
 /*
 // Example 1
 SPI spi(PF_9, PF_8, PF_7);  // mosi, miso, sclk
