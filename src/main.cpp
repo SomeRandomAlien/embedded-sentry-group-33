@@ -84,8 +84,6 @@ int main() {
       
       printf("Actual|\tgx: %4.5f \t gy: %4.5f \t gz: %4.5f\n",gx,gy,gz);
 
-     
-
      thread_sleep_for(100);
 
     }
@@ -172,7 +170,6 @@ int main() {
     
     printf("Actual|\tgx: %4.5f \t gy: %4.5f \t gz: %4.5f\n",gx,gy,gz);
   
-
   }
 }
 */
@@ -282,8 +279,6 @@ int main() {
     gz=((float)raw_gz)*(17.5f*0.017453292519943295769236907684886f / 1000.0f);
     
     printf("Actual|\tgx: %4.5f \t gy: %4.5f \t gz: %4.5f\n",gx,gy,gz);
-
-  
 
   }
 }
