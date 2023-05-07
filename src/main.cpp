@@ -3,19 +3,17 @@
 
 // In the User Manual, pay attention to I3G4250D and find its datasheet.
 #include "mbed.h"
-//#define CTRL_REG1 0x20                // First define the CTRL_REG1
-//#define CTRL_REGCONFIG 0b01'10'1'1'1'1  // Setup ODR, Cutoff, Power Mode
-//#define SPI_FLAG 1
+#include "stm32f4xx.h"
+#include "stm32f4xx_hal.h"
 
-// Documents
-// Manual for dev board: https://www.st.com/resource/en/user_manual/um1670-discovery-kit-with-stm32f429zi-mcu-stmicroelectronics.pdf
-// gyroscope datasheet: https://www.mouser.com/datasheet/2/389/dm00168691-1798633.pdf
-
-// TODO: An “enter key” and ”record” functionality must be developed.
 // Starter Code Provided by the March 27 Recitation.
 SPI spi(PF_9, PF_8, PF_7,PC_1,use_gpio_ssel); // mosi, miso, sclk, cs
-InterruptIn int2(PA_2,PullDown);
 
+// Page 22 of STM32F429 User Manual
+InterruptIn int2(PA_2,PullDown);
+InterruptIn int1(PA_1,PullDown);
+
+// For OUT_X_L and others, page 36 on I3G4250D Datasheet
 #define OUT_X_L 0x28
 //register fields(bits): data_rate(2),Bandwidth(2),Power_down(1),Zen(1),Yen(1),Xen(1)
 #define CTRL_REG1 0x20
@@ -47,12 +45,22 @@ void spi_cb(int event){
 
 };
 
+// TODO: An “enter key” and ”record” functionality must be developed.
 void data_cb(){
   flags.set(DATA_READY_FLAG);
   
  
 
 };
+
+// TODO: An “enter key” and ”record” functionality must be developed.
+void enterKey() {
+
+}
+
+void recordKey() {
+
+}
  
 int main() {
   // Setup the spi for 8 bit data, high steady state clock,
@@ -74,7 +82,7 @@ int main() {
   //configure the interrupt to call our function
   //when the pin becomes high
   int2.rise(&data_cb);
-
+  int1.rise(&recordKey);
 
   write_buf[0]=CTRL_REG3;
   write_buf[1]=CTRL_REG3_CONFIG;
