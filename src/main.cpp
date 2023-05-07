@@ -13,8 +13,13 @@ SPI spi(PF_9, PF_8, PF_7,PC_1,use_gpio_ssel); // mosi, miso, sclk, cs
 InterruptIn int2(PA_2,PullDown);
 InterruptIn int1(PA_1,PullDown);
 
+// Page 18 of the User Manual
+DigitalIn userbutton(PA_0);
+DigitalOut l1(LED1), l2(LED2);
+
 // For OUT_X_L and others, page 36 on I3G4250D Datasheet
 #define OUT_X_L 0x28
+
 //register fields(bits): data_rate(2),Bandwidth(2),Power_down(1),Zen(1),Yen(1),Xen(1)
 #define CTRL_REG1 0x20
 //configuration: 200Hz ODR,50Hz cutoff, Power on, Z on, Y on, X on
@@ -49,7 +54,6 @@ void spi_cb(int event){
 void data_cb(){
   flags.set(DATA_READY_FLAG);
   
- 
 
 };
 
