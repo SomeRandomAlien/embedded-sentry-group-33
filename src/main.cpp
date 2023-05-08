@@ -5,6 +5,7 @@
 #include "mbed.h"
 #include "stm32f4xx.h"
 #include "stm32f4xx_hal.h"
+#include "drivers/LCD_DISCO_F429ZI.h"
 
 // Starter Code Provided by the March 27 Recitation.
 SPI spi(PF_9, PF_8, PF_7,PC_1,use_gpio_ssel); // mosi, miso, sclk, cs
@@ -39,6 +40,9 @@ DigitalOut l1(LED1), l2(LED2);
 
 uint8_t write_buf[32];
 uint8_t read_buf[32];
+
+LCD_DISCO_F429ZI lcd;
+
 
 
 EventFlags flags;
@@ -87,6 +91,10 @@ int main() {
   //when the pin becomes high
   int2.rise(&data_cb);
   int1.rise(&recordKey);
+
+  // Testing LCD Output
+  lcd.Clear(LCD_COLOR_RED);
+  lcd.DisplayStringAtLine(0, (uint8_t*)"Hello World!");
 
   write_buf[0]=CTRL_REG3;
   write_buf[1]=CTRL_REG3_CONFIG;
