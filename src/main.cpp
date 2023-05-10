@@ -1,26 +1,21 @@
 // PROJECT: Use a relatively complex motion for a gyroscope in order to
 // unlock some code in the project. Look out for email called Embedded Sentry
 
-// In the User Manual, pay attention to I3G4250D and find its datasheet.
 #include "mbed.h"
 #include "stm32f4xx.h"
 #include "stm32f4xx_hal.h"
 #include "drivers/LCD_DISCO_F429ZI.h"
+#include "drivers/stm32f429i_discovery_ts.h"
+#include <iostream>
+#include <vector>
+#include <string>
+#include <cmath>
 
 // Starter Code Provided by the March 27 Recitation.
 SPI spi(PF_9, PF_8, PF_7,PC_1,use_gpio_ssel); // mosi, miso, sclk, cs
 
-// Page 22 of STM32F429 User Manual
-InterruptIn int2(PA_2,PullDown);
-InterruptIn int1(PA_1,PullDown);
-
-// Page 18 of the User Manual
-DigitalIn userbutton(PA_0);
-DigitalOut l1(LED1), l2(LED2);
-
 // For OUT_X_L and others, page 36 on I3G4250D Datasheet
 #define OUT_X_L 0x28
-
 //register fields(bits): data_rate(2),Bandwidth(2),Power_down(1),Zen(1),Yen(1),Xen(1)
 #define CTRL_REG1 0x20
 //configuration: 200Hz ODR,50Hz cutoff, Power on, Z on, Y on, X on
@@ -36,41 +31,102 @@ DigitalOut l1(LED1), l2(LED2);
 
 #define SPI_FLAG 1
 #define DATA_READY_FLAG 2
+#define SCALING_FACTOR 17.5f*0.017453292519943295769236907684886f / 1000.0f
 
+// Page 22 of STM32F429 User Manual
+InterruptIn int2(PA_2,PullDown);
+// Page 18 of the User Manual
+DigitalOut l1(LED1), l2(LED2);
 
 uint8_t write_buf[32];
 uint8_t read_buf[32];
 
 LCD_DISCO_F429ZI lcd;
+InterruptIn btn(USER_BUTTON, PullDown);     //Initialize the UserButton
+TS_StateTypeDef ts;                         //Initialize the TouchScreen
 
+/*
+For this problem, we mainly use the UserButton (PA_0) as the trigger to our mode change,
+  Here are the possible mode for this problem:
+    0 - Default mode, nothing happens
+    1 - After the first press of the UserButton. It will start the Lock recording mode.
+    2 - After the second press of the UserButton. It will shut down the Lock recording 
+        and save it.
+    3 - After the third press of the UserButton. It will start the Unlock recording mode.
+    4 - After the fourth press of the UserButton. It will shut down the Unlock recording
+        and save it. Besides the recording, this part will also do the comparison of 
+        two saved data.
 
+    5 - After the fifth press of the UserButton. It will return the result of the 
+        comparison. Then there are two choices for the next step:
+          First choice: If we press the UserButton again, we will reset the whole process
+          and start from the Stage-0, which is the default mode. (Reset)
+
+          Second choice: If we press the touch screen, it will turn Stage-2, which allow
+          us to record the Unlock again and try one more time. (Retry)
+*/
+volatile int RecordMode = 0; //Set up the int variable for recording mode
+
+// We will define a structure or a class here for the gyroscope data.
+class GyroscopeReading {
+  private:
+    float x;
+    float y;
+    float z;
+  public:
+    // Functions and definitions go here
+};
 
 EventFlags flags;
 //The spi.transfer function requires that the callback
 //provided to it takes an int parameter
 void spi_cb(int event){
   flags.set(SPI_FLAG);
-  
-
 };
 
 // TODO: An “enter key” and ”record” functionality must be developed.
 void data_cb(){
   flags.set(DATA_READY_FLAG);
-  
-
 };
 
-// TODO: An “enter key” and ”record” functionality must be developed.
-void enterKey() {
+// TODO: Change this to a switch statement
+//This function is designed to switch the mode and visual LED signal (for UserButton):
+void Switch(){
+  if(RecordMode == 0 || RecordMode == 1){
+    l1 = !l1; //Switch the LED signal for Lock Recording
+    RecordMode += 1; //Switch the Recording mode
+  }else if(RecordMode == 2 || RecordMode == 3){
+    l2 = !l2; //Switch the LED signal for Unlock Recording
+    RecordMode += 1; //Switch the Recording mode
+  }else if(RecordMode == 4){
+    //Set all LEDs up as a signal of result
+    l1 = 1;
+    l2 = 1;
 
+    RecordMode += 1;  //Switch the Recording mode
+  }else{
+    //Reset all LEDs
+    l1 = 0;
+    l2 = 0;
+
+    //Reset record mode
+    RecordMode = 0;
+  }
 }
 
-void recordKey() {
-
+//This function will be used to avoid mis-read of Screen Touch
+bool TouchEnding(){
+  TS_StateTypeDef Now;  //Define a new TouchScreen State for further check
+  thread_sleep_for(100);  //Leaving a period time to allow finger move away
+  BSP_TS_GetState(&Now);  //Update the TouchScreen State
+  return !Now.TouchDetected;  //If now the touch ends, it will return true(bool).
 }
  
 int main() {
+
+  btn.rise(&Switch);
+  // Everything below will need to be in a new function
+
   // Setup the spi for 8 bit data, high steady state clock,
   // second edge capture, with a 1MHz clock rate
   spi.format(8,3);
@@ -86,11 +142,9 @@ int main() {
   spi.transfer(write_buf,2,read_buf,2,spi_cb,SPI_EVENT_COMPLETE );
   flags.wait_all(SPI_FLAG);
 
-
   //configure the interrupt to call our function
   //when the pin becomes high
   int2.rise(&data_cb);
-  int1.rise(&recordKey);
 
   // Testing LCD Output
   lcd.Clear(LCD_COLOR_RED);
@@ -131,11 +185,35 @@ int main() {
 
     //printf("RAW|\tgx: %d \t gy: %d \t gz: %d\n",raw_gx,raw_gy,raw_gz);
 
-    gx=((float)raw_gx)*(17.5f*0.017453292519943295769236907684886f / 1000.0f);
-    gy=((float)raw_gy)*(17.5f*0.017453292519943295769236907684886f / 1000.0f);
-    gz=((float)raw_gz)*(17.5f*0.017453292519943295769236907684886f / 1000.0f);
+    gx=((float)raw_gx)*(SCALING_FACTOR);
+    gy=((float)raw_gy)*(SCALING_FACTOR);
+    gz=((float)raw_gz)*(SCALING_FACTOR);
     
     printf("Actual|\tgx: %4.5f \t gy: %4.5f \t gz: %4.5f\n",gx,gy,gz);
 
   }
+
+  // This will serve as our new main function, above will need to be put
+  // into a new function
+
+  /*
+  while(1) {
+    BSP_TS_GetState(&ts); //Get the TouchScreen status first
+
+    if (RecordMode == 5 && ts.TouchDetected && TouchEnding()) {//Retry setting
+      RecordMode = 2;
+      //Clear all saved data in Unlock recording part (leave Lock alone!)
+    }
+
+    if(RecordMode == 1){  //Start recording of Lock 
+      //Save gyro data
+    }else if(RecordMode == 3){  //Start recording of Unlock
+      //Save gyro data
+    }else if(RecordMode == 4){  //Start recording comparison
+      //Calculation code
+    }else if(RecordMode == 5){  //Result return
+      
+    }
+  }
+  */
 }
