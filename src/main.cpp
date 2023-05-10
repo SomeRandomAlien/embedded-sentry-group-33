@@ -41,9 +41,10 @@ DigitalOut l1(LED1), l2(LED2);
 uint8_t write_buf[32];
 uint8_t read_buf[32];
 
+//Initialize the UserButton, TouchScreen and LCD
 LCD_DISCO_F429ZI lcd;
-InterruptIn btn(USER_BUTTON, PullDown);     //Initialize the UserButton
-TS_StateTypeDef ts;                         //Initialize the TouchScreen
+InterruptIn btn(USER_BUTTON, PullDown);
+TS_StateTypeDef ts;
 
 /*
 For this problem, we mainly use the UserButton (PA_0) as the trigger to our mode change,
@@ -116,10 +117,10 @@ void Switch(){
 
 //This function will be used to avoid mis-read of Screen Touch
 bool TouchEnding(){
-  TS_StateTypeDef Now;  //Define a new TouchScreen State for further check
-  thread_sleep_for(100);  //Leaving a period time to allow finger move away
-  BSP_TS_GetState(&Now);  //Update the TouchScreen State
-  return !Now.TouchDetected;  //If now the touch ends, it will return true(bool).
+  TS_StateTypeDef Now;          //Define a new TouchScreen State for further check
+  thread_sleep_for(100);        //Leaving a period time to allow finger move away
+  BSP_TS_GetState(&Now);        //Update the TouchScreen State
+  return !Now.TouchDetected;    //If now the touch ends, it will return true(bool).
 }
  
 int main() {
