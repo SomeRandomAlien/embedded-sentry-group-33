@@ -51,7 +51,7 @@
                 ]
             },
             "defines": [
-                "PLATFORMIO=60106",
+                "PLATFORMIO=60107",
                 "STM32F4",
                 "STM32F429xx",
                 "ARM_MATH_CM4",
